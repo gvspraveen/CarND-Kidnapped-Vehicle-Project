@@ -120,6 +120,67 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   and the following is a good resource for the actual equation to implement (look at equation 
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
+
+  for (unsigned int i = 0; i < num_particles; i ++) {
+      double px = particles[i].x;
+      double py = particles[i].y;
+      double ptheta = particles[i].theta;
+
+      // Get a listed of predicted observations for this particle
+      vector<LandmarkObs> predicted_observations;
+
+      // For each map landmark we determine if the landmark is within sensor range for the particle
+      for (unsigned int j = 0; j < map_landmarks.landmark_list.size(); j++) {
+          double map_x = map_landmarks.landmark_list[j].x_f;
+          double map_y = map_landmarks.landmark_list[j].y_f;
+          int map_id = map_landmarks.landmark_list[j].id_i;
+
+          if ((fabs((px - map_x)) <= sensor_range) && (fabs((py - map_y)) <= sensor_range)) {
+            predicted_observations.push_back(LandmarkObs {map_id, map_x, map_y});
+          }
+      }
+
+      // Transform observations into map coordinates
+      vector<LandmarkObs> transformed_observations;
+
+      for (unsigned int j = 0; j < observations.size(); j++) {
+        LandmarkObs transformed;
+        transformed.id = observations[i].id;
+        transformed.x = px + (cos(ptheta) * observations[j].x) - (sin(ptheta) * observations[j].y);
+        transformed.y = py + (sin(ptheta) * observations[j].x) + (cos(ptheta) * observations[j].y);
+        transformed_observations.push_back(transformed);
+      }
+
+      // Associate transformed observations to predicated landmarks
+      dataAssociation(predicted_observations, transformed_observations);
+
+      particles[i].weight = 1.0;
+
+      for (unsigned int j = 0; j < transformed_observations.size(); j++) {
+        double obs_x = transformed_observations[j].x;
+        double obs_y = transformed_observations[j].y;
+
+        int obs_landmark_id = transformed_observations[j].id;
+
+        double predicted_x, predicted_y;
+
+        for (unsigned int k = 0; k < predicted_observations.size(); k++) {
+          if (predicted_observations[k].id == obs_landmark_id) {
+            predicted_x = predicted_observations[k].x;
+            predicted_y = predicted_observations[k].y;
+          }
+        }
+
+        double sigma_x = std_landmark[0];
+        double sigma_y = std_landmark[1];
+
+        double dX = obs_x - predicted_x;
+        double dY = obs_y - predicted_y;
+
+        double weight_prob = ( 1/(2*M_PI*sigma_x*sigma_y)) * exp( -( pow(dX, 2)/(2*pow(sigma_x, 2)) + ( pow(dY, 2)/(2*pow(sigma_y, 2)))));
+        particles[i].weight *= weight_prob;
+      }
+  }
 }
 
 void ParticleFilter::resample() {
@@ -140,6 +201,8 @@ Particle ParticleFilter::SetAssociations(Particle& particle, const std::vector<i
     particle.associations= associations;
     particle.sense_x = sense_x;
     particle.sense_y = sense_y;
+
+    return particle;
 }
 
 string ParticleFilter::getAssociations(Particle best)
