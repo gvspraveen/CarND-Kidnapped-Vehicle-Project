@@ -25,6 +25,8 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
+  // cout << "Start init \n";
+
   if (is_initialized) {
       return;
   }
@@ -53,7 +55,10 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
      new_p.theta += dist_x(gen);
 
      particles.push_back(new_p);
+     weights.push_back(new_p.weight);
   }
+  is_initialized = true;
+  // cout << "End init \n";
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
@@ -86,6 +91,8 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     particles[i].y += dist_y(gen);
     particles[i].theta += dist_theta(gen);
   }
+
+  // cout << "End of prediction \n";
 }
 
 void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
@@ -93,7 +100,7 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	//   observed measurement to this particular landmark.
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
-
+  // cout << "Start of dataAssociation \n";
   for (unsigned int i = 0; i < observations.size(); i++) {
       double min_distance = numeric_limits<double>::max();
       int landmark_id = -1;
@@ -106,6 +113,8 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
       }
       observations[i].id = landmark_id;
   }
+  // cout << "End of dataAssociation \n";
+
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
@@ -120,7 +129,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   and the following is a good resource for the actual equation to implement (look at equation 
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
-
+  // cout << "Started updateWeights";
   for (unsigned int i = 0; i < num_particles; i ++) {
       double px = particles[i].x;
       double py = particles[i].y;
@@ -181,12 +190,35 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         particles[i].weight *= weight_prob;
       }
   }
+  // cout << "End updateWeights \n";
+
 }
 
 void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+  // cout << "Start resample \n";
+
+  vector<Particle> sampled_particles;
+
+  uniform_int_distribution<int> particle_index_distribution(0, num_particles - 1);
+  int next_particle_id = particle_index_distribution(gen);
+  double beta = 0.0;
+  double max_weight = *max_element(weights.begin(), weights.end());
+
+  uniform_real_distribution<double> random_weight_distribution(0.0, max_weight);
+
+  for (int i = 0; i < num_particles; i++) {
+    beta += random_weight_distribution(gen) * 2.0;
+    while (beta > weights[next_particle_id]) {
+      beta -= weights[next_particle_id];
+      next_particle_id = (next_particle_id + 1) % num_particles;
+    }
+    sampled_particles.push_back(particles[next_particle_id]);
+  }
+  particles = sampled_particles;
+  // cout << "End resample \n";
 
 }
 

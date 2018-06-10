@@ -65,7 +65,7 @@ int main()
           // j[1] is the data JSON object
 
 
-          if (!pf.initialized()) {
+      if (!pf.initialized()) {
 
           	// Sense noisy position data from the simulator
 			double sense_x = std::stod(j[1]["sense_x"].get<std::string>());
