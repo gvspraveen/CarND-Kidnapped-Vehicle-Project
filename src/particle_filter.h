@@ -10,6 +10,7 @@
 #define PARTICLE_FILTER_H_
 
 #include "helper_functions.h"
+#include <random>
 
 struct Particle {
 
@@ -34,7 +35,10 @@ class ParticleFilter {
 	
 	// Flag, if filter is initialized
 	bool is_initialized;
-	
+	// lower threshold for yaw rate. to avoid division by zero
+	double eps;
+	std::default_random_engine gen;
+
 	// Vector of weights of all particles
 	std::vector<double> weights;
 	
