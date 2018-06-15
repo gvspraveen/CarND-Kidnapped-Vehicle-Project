@@ -37,7 +37,6 @@ class ParticleFilter {
 	bool is_initialized;
 	// lower threshold for yaw rate. to avoid division by zero
 	double eps;
-	std::default_random_engine gen;
 
 	// Vector of weights of all particles
 	std::vector<double> weights;
